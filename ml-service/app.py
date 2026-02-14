@@ -3,14 +3,13 @@ from flask_cors import CORS
 from tensorflow.keras.models import load_model
 import joblib
 import numpy as np
-import os
 
 app = Flask(__name__)
 
-# Allow all origins (production can restrict later)
-CORS(app, resources={r"/*": {"origins": "*"}})
+# Allow all origins (you can restrict later if needed)
+CORS(app)
 
-# Load model and preprocessors once at startup
+# Load model and preprocessors at startup
 model = load_model("irrigation_ann_model.h5")
 scaler = joblib.load("scaler.pkl")
 label_encoder = joblib.load("label_encoder.pkl")
@@ -37,7 +36,6 @@ def predict():
             "Humidity"
         ]
 
-        # Check missing fields
         for field in required_fields:
             if field not in data:
                 return jsonify({"error": f"Missing field: {field}"}), 400
@@ -45,7 +43,7 @@ def predict():
         # Encode CropType
         crop_type_encoded = label_encoder.transform([data["CropType"]])[0]
 
-        # Create feature array
+        # Prepare input features
         features = np.array([[
             crop_type_encoded,
             float(data["CropDays"]),
@@ -70,8 +68,3 @@ def predict():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
